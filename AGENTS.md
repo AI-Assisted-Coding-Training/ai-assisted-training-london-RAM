@@ -11,5 +11,5 @@
 ## Working in this repository
 
 - [Local skills](.agents/skills/) document project workflows. [Tooling](tools/) contains the packaged Backlog Assistant extension.
-- There is no frontend source tree or established build, lint, or test command yet. Document the actual commands and GitHub Pages deployment steps when adding tooling.
+- Preview the static landing page by opening [index.html](index.html) in a browser. Its 3D card artwork is CSS-only in [styles.css](styles.css). There is no build step or established lint or test command.
 - Keep guidance on architecture, project layout, validation commands, deployment, and contributor workflows current. Remove stale guidance and link to authoritative docs rather than duplicating them.
