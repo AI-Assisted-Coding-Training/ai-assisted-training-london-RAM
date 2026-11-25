@@ -22,6 +22,7 @@ Both commands must succeed, and Copilot Chat must reply to `Hello`.
 ## Getting started
 
 1. Clone the repository.
+2. Open [index.html](index.html) in a browser to preview the static landing page. No build step is required.
 
 ## Project structure
 
@@ -36,7 +37,7 @@ The [API contract](docs/api-contract.md) describes the WebSocket protocol, room 
 
 ## Deployment
 
-The application is built as a static site and deployed to GitHub Pages.
+The landing page uses plain HTML and CSS. To publish it, configure GitHub Pages to deploy from the root (`/`) of the branch containing the site.
 
 ## How we work
 
