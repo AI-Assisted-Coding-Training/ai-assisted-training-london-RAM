@@ -36,8 +36,7 @@ main {
 }
 
 .eyebrow,
-.status,
-.card {
+.status {
   font-family: ui-monospace, monospace;
 }
 
@@ -69,7 +68,7 @@ h1 span {
   line-height: 1.6;
 }
 
-.deck {
+.signal {
   position: relative;
   display: grid;
   place-items: center;
@@ -79,7 +78,7 @@ h1 span {
   overflow: hidden;
 }
 
-.deck::before {
+.signal::before {
   content: "";
   position: absolute;
   inset: 34% -35% -45%;
@@ -90,7 +89,7 @@ h1 span {
   mask-image: radial-gradient(ellipse, black, transparent 65%);
 }
 
-.deck::after {
+.signal::after {
   content: "";
   position: absolute;
   inset: auto 16% 12%;
@@ -102,37 +101,73 @@ h1 span {
   pointer-events: none;
 }
 
-.card {
+.streams,
+.streams::before,
+.streams::after {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--beam), transparent);
+  filter: drop-shadow(0 0 5px var(--beam));
+}
+
+.streams {
+  --beam: var(--cyan);
+  width: min(94%, 28rem);
+}
+
+.streams::before,
+.streams::after {
+  content: "";
+  inset: 0;
+  transform: rotate(17deg);
+}
+
+.streams::after {
+  --beam: var(--pink);
+  transform: rotate(-17deg);
+}
+
+.memory {
+  position: absolute;
+  z-index: 1;
+  width: clamp(9rem, 38vw, 21rem);
+  aspect-ratio: 3.6;
+  border: 1px solid var(--cyan);
+  border-radius: .25rem;
+  background: repeating-linear-gradient(90deg, transparent 0 13%, #66ffe327 13% 14%, transparent 14% 20%),
+    linear-gradient(155deg, #224947, #151631 64%, #431a47);
+  box-shadow: .2rem .35rem #132e38, .3rem .45rem #742b68, 0 0 1.6rem #66ffe377;
+  transform: translateY(-14%) rotateX(21deg) rotateY(-16deg) rotateZ(-14deg);
+}
+
+.memory-chips {
+  position: absolute;
+  inset: 18% 7% 29%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7%;
+}
+
+.memory-chips span {
   display: grid;
   place-items: center;
-  position: absolute;
-  width: clamp(4.5rem, 14vw, 9rem);
-  aspect-ratio: 2 / 3;
-  border: 1px solid currentColor;
-  border-radius: 0.4rem;
+  border: 1px solid #66ffe377;
+  border-radius: .15rem;
+  background: #0d1020;
   color: var(--cyan);
-  background: linear-gradient(145deg, #472954, #160e26 72%);
-  font: italic 900 clamp(2rem, 5vw, 4rem)/1 var(--display-font);
-  box-shadow: 0.25rem 0.35rem 0 #20514d, 0 0 1.2rem #66ffe344;
-  text-shadow: 0 0 0.6em currentColor;
+  font: 700 clamp(.75rem, 3vw, 1.65rem)/1 ui-monospace, monospace;
+  text-shadow: 0 0 .45rem currentColor;
+  box-shadow: 0 2px var(--pink);
 }
 
-.card::after {
+.memory::after {
   content: "";
   position: absolute;
-  inset: .35rem;
-  border: 1px solid currentColor;
-  clip-path: polygon(0 0, 40% 0, 0 40%, 0 0, 100% 100%, 60% 100%, 100% 60%, 100% 100%);
-  opacity: .6;
-}
-
-.card:first-child { transform: translateX(-65%) rotateY(34deg) rotateZ(-14deg); }
-.card:last-child { transform: translateX(65%) rotateY(-34deg) rotateZ(14deg); }
-.card:nth-child(2) {
-  z-index: 1;
-  color: var(--pink);
-  transform: translateZ(55px) rotateY(-10deg) rotateX(8deg);
-  box-shadow: 0.3rem 0.4rem 0 #622653, 0 0 2rem #ff79ba66;
+  inset: auto 5% 0;
+  height: 17%;
+  background: repeating-linear-gradient(90deg, #ffd089 0 2%, transparent 2% 3.5%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 57% 100%, 57% 0, 52% 0, 52% 100%, 0 100%);
 }
 
 .status {
