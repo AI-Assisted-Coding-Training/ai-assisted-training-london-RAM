@@ -2,6 +2,7 @@
   color-scheme: dark;
   --cyan: #66ffe3;
   --pink: #ff79ba;
+  --display-font: "Avenir Next Condensed", "Arial Narrow", Impact, sans-serif;
 }
 
 * {
@@ -15,9 +16,9 @@ body {
   place-items: center;
   padding: clamp(1rem, 5vw, 3rem);
   color: #f5efff;
-  background-color: #100b1b;
+  background-color: #090611;
   background-image:
-    radial-gradient(ellipse at center, #281436, transparent 70%),
+    radial-gradient(ellipse at 75% 20%, #371443, transparent 65%),
     linear-gradient(#241b35 1px, transparent 1px),
     linear-gradient(90deg, #241b35 1px, transparent 1px);
   background-size: 100% 100%, 32px 32px, 32px 32px;
@@ -25,12 +26,12 @@ body {
 }
 
 main {
-  width: min(100%, 48rem);
+  width: min(100%, 64rem);
   padding: clamp(1.25rem, 6vw, 4rem);
   border: 1px solid #524063;
   border-top: 3px solid var(--cyan);
-  background: #160e23;
-  box-shadow: 0 0 2rem #66ffe318;
+  background: radial-gradient(ellipse at 50% 70%, #351641, #100a1d 68%);
+  box-shadow: 0 0 3rem #66ffe318, inset 0 0 2rem #ff79ba12;
   text-align: center;
 }
 
@@ -50,14 +51,15 @@ main {
 
 h1 {
   margin: 0;
-  font-size: clamp(2.25rem, 8vw, 5rem);
-  line-height: 1;
-  letter-spacing: -0.05em;
+  font: italic 900 clamp(1.9rem, 7vw, 5rem)/1.08 var(--display-font);
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  text-shadow: 1px 1px #327c78, 2px 2px #327c78, 3px 3px #327c78, 0 0 1.25rem #66ffe355;
 }
 
 h1 span {
   color: var(--pink);
-  text-shadow: 0 0 1.25rem #ff79ba55;
+  text-shadow: 1px 1px #8e3f77, 2px 2px #8e3f77, 3px 3px #8e3f77, 0 0 1.25rem #ff79ba66;
 }
 
 .intro {
@@ -68,29 +70,69 @@ h1 span {
 }
 
 .deck {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-  margin: 2rem 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: clamp(13rem, 34vw, 22rem);
+  perspective: 700px;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.deck::before {
+  content: "";
+  position: absolute;
+  inset: 34% -35% -45%;
+  transform: rotateX(60deg);
+  background:
+    repeating-linear-gradient(90deg, #a54f9e 0 1px, transparent 1px 2rem),
+    repeating-linear-gradient(#a54f9e 0 1px, transparent 1px 2rem);
+  mask-image: radial-gradient(ellipse, black, transparent 65%);
+}
+
+.deck::after {
+  content: "";
+  position: absolute;
+  inset: auto 16% 12%;
+  height: 24%;
+  border: 1px solid #66ffe377;
+  border-radius: 50%;
+  transform: rotateX(58deg);
+  box-shadow: 0 0 1rem #66ffe344, inset 0 0 1rem #66ffe333;
+  pointer-events: none;
 }
 
 .card {
   display: grid;
   place-items: center;
-  width: clamp(2.75rem, 12vw, 4.5rem);
+  position: absolute;
+  width: clamp(4.5rem, 14vw, 9rem);
   aspect-ratio: 2 / 3;
   border: 1px solid currentColor;
   border-radius: 0.4rem;
   color: var(--cyan);
-  background: #1d142c;
-  font-size: 1.6rem;
+  background: linear-gradient(145deg, #472954, #160e26 72%);
+  font: italic 900 clamp(2rem, 5vw, 4rem)/1 var(--display-font);
+  box-shadow: 0.25rem 0.35rem 0 #20514d, 0 0 1.2rem #66ffe344;
+  text-shadow: 0 0 0.6em currentColor;
 }
 
-.card:first-child { transform: rotate(-8deg); }
-.card:last-child { transform: rotate(8deg); }
+.card::after {
+  content: "";
+  position: absolute;
+  inset: .35rem;
+  border: 1px solid currentColor;
+  clip-path: polygon(0 0, 40% 0, 0 40%, 0 0, 100% 100%, 60% 100%, 100% 60%, 100% 100%);
+  opacity: .6;
+}
+
+.card:first-child { transform: translateX(-65%) rotateY(34deg) rotateZ(-14deg); }
+.card:last-child { transform: translateX(65%) rotateY(-34deg) rotateZ(14deg); }
 .card:nth-child(2) {
+  z-index: 1;
   color: var(--pink);
-  box-shadow: 0 0 1rem #ff79ba33;
+  transform: translateZ(55px) rotateY(-10deg) rotateX(8deg);
+  box-shadow: 0.3rem 0.4rem 0 #622653, 0 0 2rem #ff79ba66;
 }
 
 .status {
