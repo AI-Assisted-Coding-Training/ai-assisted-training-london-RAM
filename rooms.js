@@ -18,7 +18,7 @@ const estimateInput = document.querySelector('#agreed-estimate');
 const historyList = document.querySelector('#history-list');
 const historyEmpty = document.querySelector('#history-empty');
 const discussionDuration = 60_000;
-const votingDuration = 20_000;
+const votingDuration = 10_000;
 const historyLimit = 20;
 // The contract has no history API, so each saved estimate is an extra
 // connection whose display name (max 32 chars) encodes "§index|estimate|item".
