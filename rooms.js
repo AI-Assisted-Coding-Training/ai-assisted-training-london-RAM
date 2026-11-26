@@ -5,10 +5,38 @@ const room = document.querySelector('#room');
 const roster = document.querySelector('#roster');
 const joinUrl = document.querySelector('#join-url');
 const feedback = document.querySelector('#feedback');
+const deck = document.querySelector('#vote-deck');
+const reveal = document.querySelector('#reveal');
+const reset = document.querySelector('#reset');
+const estimates = ['1', '2', '3', '5', '8', '13', '21', '?'];
 const avatars = ['🚀', '🦊', '🐙', '🐼', '🦉', '🐢', '🐝', '🐬'];
 const roomHash = /^#\/room\/([a-z0-9]{4,32}(?:-[a-z0-9]{4,32})*)$/;
 let socket;
 let targetRoom;
+
+for (const value of estimates) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.value = value;
+  card.textContent = value;
+  deck.append(card);
+}
+
+function sendRoundAction(message) {
+  if (socket?.readyState !== WebSocket.OPEN) {
+    feedback.textContent = 'Not connected. Join the room again to continue.';
+    return false;
+  }
+  socket.send(JSON.stringify(message));
+  return true;
+}
+
+deck.addEventListener('click', event => {
+  const card = event.target;
+  if (card instanceof HTMLButtonElement && !deck.disabled) {
+    sendRoundAction({ type: 'vote', value: card.value });
+  }
+});
 
 function showForm() {
   const hash = location.hash;
@@ -22,8 +50,8 @@ function showForm() {
   feedback.textContent = connectButton.disabled ? 'This join URL is invalid.' : '';
 }
 
-function renderRoster(users, userId, hostId) {
-  roster.replaceChildren(...users.map(({ id, name }) => {
+function renderRoster({ users, hostId, revealed, votes }, userId) {
+  roster.replaceChildren(...users.map(({ id, name, hasVoted }) => {
     let hash = 0;
     for (const char of id) hash = (Math.imul(31, hash) + char.codePointAt(0)) >>> 0;
     const item = document.createElement('li');
@@ -31,6 +59,8 @@ function renderRoster(users, userId, hostId) {
     avatar.setAttribute('aria-hidden', 'true');
     avatar.textContent = avatars[hash % avatars.length];
     item.append(avatar, ` ${name}${id === userId ? ' (you)' : ''}${id === hostId ? ' (host)' : ''}`);
+    const result = revealed && Object.hasOwn(votes, id) ? votes[id] : 'No vote';
+    item.append(` — ${revealed ? result : hasVoted ? 'Voted' : 'Not voted'}`);
     return item;
   }));
 }
@@ -54,6 +84,18 @@ form.addEventListener('submit', event => {
   socket = connection;
   let userId;
   let entered = false;
+  let revealPending = false;
+  function requestReveal() {
+    if (revealPending) return;
+    revealPending = sendRoundAction({ type: 'reveal' });
+    reveal.disabled = revealPending;
+  }
+  reveal.onclick = () => {
+    if (!reveal.hidden) requestReveal();
+  };
+  reset.onclick = () => {
+    if (!reset.hidden) sendRoundAction({ type: 'reset' });
+  };
   connectButton.disabled = true;
   feedback.textContent = 'Connecting…';
 
@@ -61,8 +103,23 @@ form.addEventListener('submit', event => {
     if (socket !== connection) return;
     const message = JSON.parse(event.data);
     if (message.type === 'welcome') userId = message.userId;
+    if (message.type === 'error') {
+      revealPending = false;
+      reveal.disabled = false;
+      feedback.textContent = message.message;
+      return;
+    }
     if (message.type !== 'state' || !userId) return;
-    renderRoster(message.users, userId, message.hostId);
+    renderRoster(message, userId);
+    const isHost = message.hostId === userId;
+    if (message.revealed) revealPending = false;
+    deck.disabled = message.revealed;
+    reveal.hidden = !isHost || message.revealed;
+    reveal.disabled = revealPending;
+    reset.hidden = !isHost || !message.revealed;
+    if (!reveal.hidden && message.users.length && message.users.every(user => user.hasVoted)) {
+      requestReveal();
+    }
     if (!entered) {
       entered = true;
       if (!joining) history.pushState(null, '', `#/room/${roomId}`);

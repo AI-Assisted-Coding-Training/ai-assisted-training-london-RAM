@@ -23,6 +23,7 @@ Both commands must succeed, and Copilot Chat must reply to `Hello`.
 
 1. Clone the repository.
 2. Open [index.html](index.html) in a browser to preview the static landing page. No build step is required.
+3. Create a room and share its join URL. Choose a Fibonacci estimate; the host can reveal early or reset after reveal. Otherwise, votes are revealed once everyone currently in the room has voted. Shared item names and saving agreed estimates are not supported by the current backend.
 
 ## Project structure
 
