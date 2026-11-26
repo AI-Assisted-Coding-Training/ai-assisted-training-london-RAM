@@ -12,6 +12,7 @@
 
 - [Local skills](.agents/skills/) document project workflows. [Tooling](tools/) contains the packaged Backlog Assistant extension.
 - Preview the Memory Sizing landing page by opening [index.html](index.html) in a browser. Its holographic RAM module is decorative and CSS-only in [styles.css](styles.css). There is no build step or established lint or test command.
+- The room UI uses one fixed holographic RAM theme with no theme picker. [Room logic](rooms.js) exposes voting and timer states through `data-state` attributes, and the selected estimate through `aria-pressed`, for styling. Convey states with text or shape as well as colour.
 - [Room logic](rooms.js) uses hash routes and the browser WebSocket API; no build or server-side routing is needed. See [system design](docs/system-design.md).
 - Room QR codes are generated in the browser using the vendored encoder; do not send join URLs to an external QR service.
 - Keep guidance on architecture, project layout, validation commands, deployment, and contributor workflows current. Remove stale guidance and link to authoritative docs rather than duplicating them.

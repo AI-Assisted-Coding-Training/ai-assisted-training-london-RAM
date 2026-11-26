@@ -24,7 +24,6 @@ const historyLimit = 20;
 // connection whose display name (max 32 chars) encodes "§index|estimate|item".
 const historyName = /^§(\d{1,2})\|([^|]{1,4})\|(.{1,20})$/;
 const estimates = ['1', '2', '3', '5', '8', '13', '21', '?'];
-const avatars = ['🚀', '🦊', '🐙', '🐼', '🦉', '🐢', '🐝', '🐬'];
 const roomHash = /^#\/room\/([a-z0-9]{4,32}(?:-[a-z0-9]{4,32})*)$/;
 let socket;
 let targetRoom;
@@ -45,7 +44,12 @@ function renderHistory() {
   const entries = [...savedEstimates.values()].sort((a, b) => a.index - b.index);
   historyList.replaceChildren(...entries.map(({ item, estimate }) => {
     const entry = document.createElement('li');
-    entry.textContent = `${item}: ${estimate}`;
+    const name = document.createElement('span');
+    const value = document.createElement('span');
+    name.textContent = item;
+    value.className = 'chip';
+    value.textContent = estimate;
+    entry.append(name, value);
     return entry;
   }));
   historyEmpty.hidden = entries.length > 0;
@@ -74,7 +78,14 @@ for (const value of estimates) {
   card.type = 'button';
   card.value = value;
   card.textContent = value;
+  card.setAttribute('aria-pressed', 'false');
   deck.append(card);
+}
+
+function selectCard(value) {
+  for (const card of deck.querySelectorAll('button')) {
+    card.setAttribute('aria-pressed', String(card.value === value));
+  }
 }
 
 function sendRoundAction(message) {
@@ -89,7 +100,7 @@ function sendRoundAction(message) {
 deck.addEventListener('click', event => {
   const card = event.target;
   if (card instanceof HTMLButtonElement && !deck.disabled) {
-    sendRoundAction({ type: 'vote', value: card.value });
+    if (sendRoundAction({ type: 'vote', value: card.value })) selectCard(card.value);
   }
 });
 
@@ -99,6 +110,7 @@ function showForm() {
   savedEstimates.clear();
   renderHistory();
   saveForm.hidden = true;
+  selectCard();
   const hash = location.hash;
   targetRoom = roomHash.exec(hash)?.[1];
   if (targetRoom?.length > 128) targetRoom = undefined;
@@ -110,19 +122,31 @@ function showForm() {
   feedback.textContent = connectButton.disabled ? 'This join URL is invalid.' : '';
 }
 
+function badge(className, text, state) {
+  const element = document.createElement('span');
+  element.className = className;
+  element.textContent = text;
+  if (state) element.dataset.state = state;
+  return element;
+}
+
 function renderRoster({ users, hostId, revealed, votes }, userId) {
   roster.replaceChildren(...users.map(({ id, name, hasVoted }) => {
     let hash = 0;
     for (const char of id) hash = (Math.imul(31, hash) + char.codePointAt(0)) >>> 0;
     const item = document.createElement('li');
-    const avatar = document.createElement('span');
+    const avatar = badge('avatar', name.split(/\s+/).filter(Boolean).slice(0, 2)
+      .map(word => Array.from(word)[0]).join('').toUpperCase());
     avatar.setAttribute('aria-hidden', 'true');
-    avatar.textContent = avatars[hash % avatars.length];
-    item.append(avatar, ` ${name}${id === userId ? ' (you)' : ''}${id === hostId ? ' (host)' : ''}`);
+    avatar.style.setProperty('--hue', (Math.imul(hash, 0x9e3779b1) >>> 0) % 360);
+    item.append(avatar, badge('name', name));
+    if (id === userId) item.append(badge('tag', 'You'));
+    if (id === hostId) item.append(badge('tag', 'Host', 'host'));
     if (revealed && Object.keys(votes).length) {
-      item.append(` — ${Object.hasOwn(votes, id) ? votes[id] : 'No vote'}`);
+      item.append(Object.hasOwn(votes, id) ? badge('chip', votes[id], 'value')
+        : badge('chip', 'No vote', 'none'));
     } else if (!revealed) {
-      item.append(` — ${hasVoted ? 'Voted' : 'Not voted'}`);
+      item.append(hasVoted ? badge('chip', '✓ Voted', 'voted') : badge('chip', 'Not voted', 'waiting'));
     }
     return item;
   }));
@@ -219,10 +243,12 @@ form.addEventListener('submit', event => {
     clearTimeout(timerTick);
     roundTimer.hidden = false;
     if (phase === 'idle') {
+      roundTimer.dataset.state = state.revealed ? 'closed' : 'open';
       roundTimer.textContent = state.revealed
         ? 'Voting is closed. Waiting for the host to start voting.' : 'Voting is open.';
     } else {
       const left = Math.max(0, deadline - now);
+      roundTimer.dataset.state = phase === 'voting' && left <= 5000 ? 'urgent' : phase;
       roundTimer.textContent = `${phase === 'discussion' ? 'Discussion' : 'Voting'}: ${Math.ceil(left / 1000)}s`;
       if (left) timerTick = setTimeout(updateRound, left % 1000 || 1000);
     }
@@ -296,8 +322,10 @@ form.addEventListener('submit', event => {
       presentEntries.add(entry.index);
       if (!savedEstimates.has(entry.index)) savedEstimates.set(entry.index, entry);
     }
+    const wasRevealed = state?.revealed !== false;
     state = { ...message, users: people };
     renderRoster(state, userId);
+    if (wasRevealed && !message.revealed) selectCard();
     renderHistory();
     if (message.revealed) revealPending = false;
     else resetPending = false;
