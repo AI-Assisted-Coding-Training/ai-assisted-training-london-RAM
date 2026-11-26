@@ -10,6 +10,10 @@ manually, requests it automatically when all current participants have voted,
 and can reset voting for the next round. The backend remains authoritative for
 votes and host permissions. Shared item names and saving agreed estimates
 require backend support not present in the current contract.
+The host can start a local countdown: 60 seconds of discussion followed by
+20 seconds of voting. The host browser requests reveal on timeout using the
+existing WebSocket action. Countdown state is not sent to other clients and
+does not prevent them from voting during discussion.
 
 ```mermaid
 flowchart LR
