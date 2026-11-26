@@ -4,6 +4,8 @@ const connectButton = document.querySelector('#connect');
 const room = document.querySelector('#room');
 const roster = document.querySelector('#roster');
 const joinUrl = document.querySelector('#join-url');
+const joinQr = document.querySelector('#join-qr');
+const joinQrImage = joinQr.querySelector('img');
 const feedback = document.querySelector('#feedback');
 const deck = document.querySelector('#vote-deck');
 const reveal = document.querySelector('#reveal');
@@ -308,6 +310,18 @@ form.addEventListener('submit', event => {
       form.hidden = true;
       room.hidden = false;
       feedback.textContent = '';
+      joinQr.hidden = true;
+      joinQrImage.removeAttribute('src');
+      try {
+        const code = qrcode(0, 'M');
+        code.addData(joinUrl.value);
+        code.make();
+        joinQrImage.src = code.createDataURL(4);
+        joinQr.hidden = false;
+      } catch (error) {
+        console.error('Could not generate the room QR code:', error);
+        feedback.textContent = 'Could not generate a QR code. You can still copy the join URL.';
+      }
       document.querySelector('#room-heading').focus();
     }
   });

@@ -4,6 +4,9 @@ The [static frontend](../index.html) is deployable on GitHub Pages without
 rewrites. [Room logic](../rooms.js) reads the room ID from the URL fragment,
 connects directly to the separate backend, and derives the roster and host
 label from backend snapshots. Avatars are derived locally from user IDs.
+The browser uses the same join URL for copying and for a QR code generated
+locally by the [vendored QR encoder](../vendor/qrcode.js); no external QR
+service receives the link.
 The frontend sends Fibonacci votes as strings and displays only voting status
 until the backend reveals the values. The backend remains authoritative for
 votes and host permissions. Item names are not shared while a round runs.
@@ -38,7 +41,8 @@ history lasts as long as the room. Limitations:
 ```mermaid
 flowchart LR
     User[Team member] --> Browser[Browser]
-    Pages[GitHub Pages<br/>static frontend] --> Browser
+    Pages[GitHub Pages<br/>static frontend and QR encoder] --> Browser
+    Browser -->|Locally generated join QR| User
     Browser <-->|WebSocket room snapshots and voting actions| Backend[Separate backend<br/>Node.js process]
     Browser -.->|Host only: one WebSocket per saved estimate| Backend
     Backend --> State[Room state<br/>in memory]

@@ -25,12 +25,17 @@ Both commands must succeed, and Copilot Chat must reply to `Hello`.
 2. Open [index.html](index.html) in a browser to preview the static landing page. No build step is required.
 3. Create a room and share its join URL. Voting stays closed for everyone until the host selects **Start voting**, which runs a 60-second discussion followed by a 20-second voting window. The host can select **Skip discussion** to open the full voting window immediately. Votes reveal when the window expires, when everyone has voted, or when the host reveals early. Only the host sees the countdown. After each round, the host can save an item name (up to 20 characters) and the agreed estimate (up to 4 characters); saved estimates appear in a read-only session history panel for everyone in the room until the room ends. See [system design](docs/system-design.md) for how history works within the API contract and its limitations.
 
+In an active room, copy the join URL or scan its QR code to join from another
+device. Use the deployed site or another address reachable from that device;
+a local file or `localhost` URL is not shareable across devices.
+
 ## Project structure
 
 | Path | Contents |
 |---|---|
 | `docs/` | Project documentation, including the [API contract](docs/api-contract.md) |
 | `tools/` | Developer tooling |
+| `vendor/` | Browser bundle of `qrcode-generator` 2.0.4 and its [MIT license](vendor/qrcode.LICENSE) |
 
 ## API contract
 
