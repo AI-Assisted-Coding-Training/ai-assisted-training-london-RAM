@@ -8,11 +8,25 @@ const feedback = document.querySelector('#feedback');
 const deck = document.querySelector('#vote-deck');
 const reveal = document.querySelector('#reveal');
 const reset = document.querySelector('#reset');
+const startVoting = document.querySelector('#start-voting');
+const skipDiscussion = document.querySelector('#skip-discussion');
+const roundTimer = document.querySelector('#round-timer');
+const discussionDuration = 60_000;
+const votingDuration = 20_000;
 const estimates = ['1', '2', '3', '5', '8', '13', '21', '?'];
 const avatars = ['🚀', '🦊', '🐙', '🐼', '🦉', '🐢', '🐝', '🐬'];
 const roomHash = /^#\/room\/([a-z0-9]{4,32}(?:-[a-z0-9]{4,32})*)$/;
 let socket;
 let targetRoom;
+let discussionEnds;
+let timerTick;
+
+function stopTimer() {
+  clearTimeout(timerTick);
+  discussionEnds = undefined;
+  roundTimer.hidden = true;
+  skipDiscussion.hidden = true;
+}
 
 for (const value of estimates) {
   const card = document.createElement('button');
@@ -39,6 +53,7 @@ deck.addEventListener('click', event => {
 });
 
 function showForm() {
+  stopTimer();
   const hash = location.hash;
   targetRoom = roomHash.exec(hash)?.[1];
   if (targetRoom?.length > 128) targetRoom = undefined;
@@ -85,16 +100,55 @@ form.addEventListener('submit', event => {
   let userId;
   let entered = false;
   let revealPending = false;
+  let state;
   function requestReveal() {
     if (revealPending) return;
     revealPending = sendRoundAction({ type: 'reveal' });
     reveal.disabled = revealPending;
   }
   reveal.onclick = () => {
-    if (!reveal.hidden) requestReveal();
+    if (!reveal.hidden && !reveal.disabled) requestReveal();
   };
   reset.onclick = () => {
     if (!reset.hidden) sendRoundAction({ type: 'reset' });
+  };
+  function updateRound() {
+    const isHost = state.hostId === userId;
+    if (!isHost || state.revealed) stopTimer();
+    const now = Date.now();
+    const discussing = discussionEnds !== undefined && now < discussionEnds;
+    skipDiscussion.hidden = !discussing;
+    const votingEnds = discussionEnds === undefined ? undefined : discussionEnds + votingDuration;
+    const timedOut = votingEnds !== undefined && now >= votingEnds;
+    if (votingEnds !== undefined) {
+      const deadline = discussing ? discussionEnds : votingEnds;
+      const seconds = Math.max(0, Math.ceil((deadline - now) / 1000));
+      roundTimer.hidden = false;
+      roundTimer.textContent = `${discussing ? 'Discussion' : 'Voting'}: ${seconds}s (host only)`;
+      clearTimeout(timerTick);
+      if (!timedOut) timerTick = setTimeout(updateRound, (deadline - now) % 1000 || 1000);
+    }
+    deck.disabled = state.revealed || discussing;
+    startVoting.hidden = !isHost || state.revealed;
+    startVoting.disabled = discussionEnds !== undefined || revealPending || state.users.some(user => user.hasVoted);
+    reveal.hidden = !isHost || state.revealed;
+    reveal.disabled = discussing || revealPending;
+    reset.hidden = !isHost || !state.revealed;
+    if (!reveal.hidden && !discussing && (timedOut ||
+      (state.users.length && state.users.every(user => user.hasVoted)))) {
+      requestReveal();
+    }
+  }
+  startVoting.onclick = () => {
+    if (startVoting.hidden || startVoting.disabled) return;
+    discussionEnds = Date.now() + discussionDuration;
+    updateRound();
+  };
+  skipDiscussion.onclick = () => {
+    const now = Date.now();
+    if (discussionEnds === undefined || now >= discussionEnds) return;
+    discussionEnds = now;
+    updateRound();
   };
   connectButton.disabled = true;
   feedback.textContent = 'Connecting…';
@@ -105,21 +159,15 @@ form.addEventListener('submit', event => {
     if (message.type === 'welcome') userId = message.userId;
     if (message.type === 'error') {
       revealPending = false;
-      reveal.disabled = false;
+      reveal.disabled = discussionEnds !== undefined && Date.now() < discussionEnds;
       feedback.textContent = message.message;
       return;
     }
     if (message.type !== 'state' || !userId) return;
     renderRoster(message, userId);
-    const isHost = message.hostId === userId;
+    state = message;
     if (message.revealed) revealPending = false;
-    deck.disabled = message.revealed;
-    reveal.hidden = !isHost || message.revealed;
-    reveal.disabled = revealPending;
-    reset.hidden = !isHost || !message.revealed;
-    if (!reveal.hidden && message.users.length && message.users.every(user => user.hasVoted)) {
-      requestReveal();
-    }
+    updateRound();
     if (!entered) {
       entered = true;
       if (!joining) history.pushState(null, '', `#/room/${roomId}`);
