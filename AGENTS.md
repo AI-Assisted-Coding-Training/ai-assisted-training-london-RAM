@@ -12,4 +12,5 @@
 
 - [Local skills](.agents/skills/) document project workflows. [Tooling](tools/) contains the packaged Backlog Assistant extension.
 - Preview the Memory Sizing landing page by opening [index.html](index.html) in a browser. Its holographic RAM module is decorative and CSS-only in [styles.css](styles.css). There is no build step or established lint or test command.
+- [Room logic](rooms.js) uses hash routes and the browser WebSocket API; no build or server-side routing is needed. See [system design](docs/system-design.md).
 - Keep guidance on architecture, project layout, validation commands, deployment, and contributor workflows current. Remove stale guidance and link to authoritative docs rather than duplicating them.
