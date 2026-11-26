@@ -1,14 +1,15 @@
 # System design
 
-The frontend is planned as a static web application hosted on GitHub Pages;
-this repository does not yet contain its implementation. It will communicate
-with a separately maintained backend using the WebSocket API contract.
+The [static frontend](../index.html) is deployable on GitHub Pages without
+rewrites. [Room logic](../rooms.js) reads the room ID from the URL fragment,
+connects directly to the separate backend, and derives the roster and host
+label from backend snapshots. Avatars are derived locally from user IDs.
 
 ```mermaid
 flowchart LR
     User[Team member] --> Browser[Browser]
-    Pages[GitHub Pages<br/>planned static frontend] -. serves .-> Browser
-    Browser <-->|WebSocket| Backend[Separate backend<br/>Node.js process]
+    Pages[GitHub Pages<br/>static frontend] --> Browser
+    Browser <-->|WebSocket room sessions| Backend[Separate backend<br/>Node.js process]
     Backend --> State[Room state<br/>in memory]
 ```
 

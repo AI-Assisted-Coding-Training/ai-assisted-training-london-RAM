@@ -6,6 +6,7 @@
   <meta name="description" content="Memory Sizing: a shared way for agile teams to estimate work.">
   <title>Memory Sizing</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="rooms.js" defer></script>
 </head>
 <body>
   <main>
@@ -22,7 +23,19 @@
         </span>
       </span>
     </div>
-    <p class="status">Coming soon</p>
+    <form id="room-form">
+      <label for="display-name">Display name</label>
+      <input id="display-name" name="name" required maxlength="32" autocomplete="nickname">
+      <button id="connect" type="submit">Create room</button>
+    </form>
+    <section id="room" hidden aria-labelledby="room-heading">
+      <h2 id="room-heading" tabindex="-1">Room participants</h2>
+      <button id="copy" type="button">Copy join URL</button>
+      <input id="join-url" aria-label="Join URL" readonly>
+      <ul id="roster"></ul>
+      <button id="leave" type="button">Leave room</button>
+    </section>
+    <p id="feedback" role="status"></p>
   </main>
 </body>
 </html>
