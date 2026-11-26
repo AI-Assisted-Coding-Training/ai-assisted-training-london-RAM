@@ -5,6 +5,12 @@
   --display-font: "Avenir Next Condensed", "Arial Narrow", Impact, sans-serif;
 }
 
+#join-qr img {
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
 #room-form:not([hidden]) {
   display: flex;
   flex-wrap: wrap;
