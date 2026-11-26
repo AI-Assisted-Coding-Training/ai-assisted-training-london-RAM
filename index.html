@@ -33,6 +33,11 @@
       <input id="join-url" aria-label="Join URL" readonly>
       <h2 id="room-heading" tabindex="-1">Room participants</h2>
       <ul id="roster"></ul>
+      <fieldset id="vote-deck" disabled>
+        <legend>Choose a private estimate</legend>
+      </fieldset>
+      <button id="reveal" type="button" hidden>Reveal votes</button>
+      <button id="reset" type="button" hidden>Reset voting</button>
       <button id="leave" type="button">Leave room</button>
     </section>
     <p id="feedback" role="status"></p>
