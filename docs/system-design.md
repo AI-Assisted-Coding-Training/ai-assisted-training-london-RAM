@@ -15,11 +15,11 @@ The contract has no round-phase message, so the host's browser uses the
 revealed state as a room-wide voting lock: the backend rejects votes while a
 room is revealed. The host's browser keeps the room revealed until voting
 opens, then sends `reset` to unlock voting for everyone. It runs a local
-countdown of 60 seconds of discussion followed by 20 seconds of voting, then
+countdown of 60 seconds of discussion followed by 10 seconds of voting, then
 sends `reveal` on timeout, when all current participants have voted, or on
 request. Only the host sees the countdown; other participants see whether
 voting is open. A newly promoted host continues an unrevealed round with a new
-20-second voting window if anyone has voted, otherwise it locks the room.
+10-second voting window if anyone has voted, otherwise it locks the room.
 
 The contract has no history API, so session history is carried in the room
 roster. After a round, the host saves an item and agreed estimate. The host's
