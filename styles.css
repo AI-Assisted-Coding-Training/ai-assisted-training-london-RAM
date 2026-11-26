@@ -236,6 +236,7 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: flex-start;
   gap: 0.6rem;
   margin: 1rem 0;
   padding: 1rem;
@@ -251,38 +252,72 @@ h2 {
   text-transform: uppercase;
 }
 
+/* Each estimate card is a mini RAM stick: PCB, a memory chip, and gold pins. */
 #vote-deck button {
-  width: 3.2rem;
-  aspect-ratio: 3 / 4;
-  padding: 0;
-  border: 1px solid #66ffe377;
-  background: #0d1020;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-content: center;
+  width: min(6.5rem, 40%);
+  height: 2.75rem;
+  padding: 0 0 0.45rem;
+  border: 1px solid #66ffe399;
+  border-radius: 0.25rem;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 13%, #66ffe327 13% 14%, transparent 14% 20%),
+    linear-gradient(155deg, #224947, #151631 64%, #431a47);
   color: var(--cyan);
-  font: 800 1.3rem/1 ui-monospace, monospace;
+  font: 800 1.15rem/1 ui-monospace, monospace;
   text-shadow: 0 0 0.45rem currentColor;
-  box-shadow: 0 3px var(--pink);
+  box-shadow: 0.15rem 0.25rem #132e38, 0.2rem 0.3rem #742b68;
+}
+
+#vote-deck button::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 14% 28% 30%;
+  border: 1px solid #66ffe377;
+  border-radius: 0.15rem;
+  background: #0d1020;
+  box-shadow: 0 2px var(--pink);
+}
+
+#vote-deck button::after {
+  content: "";
+  position: absolute;
+  inset: auto 5% 0;
+  height: 16%;
+  background: repeating-linear-gradient(90deg, #ffd089 0 4%, transparent 4% 7%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 57% 100%, 57% 0, 50% 0, 50% 100%, 0 100%);
 }
 
 #vote-deck button:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0.15rem 0.25rem #132e38, 0.2rem 0.3rem #742b68, 0 0 1rem #66ffe355;
 }
 
 #vote-deck button[aria-pressed="true"] {
   border: 2px solid var(--cyan);
-  background: var(--cyan);
   color: #090611;
   text-shadow: none;
   transform: translateY(-4px);
-  box-shadow: 0 4px var(--pink), 0 0 1.2rem #66ffe3aa;
+  box-shadow: 0.15rem 0.25rem #132e38, 0.2rem 0.3rem var(--pink), 0 0 1.4rem #66ffe3aa;
+}
+
+#vote-deck button[aria-pressed="true"]::before {
+  border-color: var(--cyan);
+  background: var(--cyan);
 }
 
 #vote-deck:disabled button {
   opacity: 0.45;
-  box-shadow: 0 3px #524063;
+  filter: saturate(0.4);
 }
 
 #vote-deck:disabled button[aria-pressed="true"] {
   opacity: 0.8;
+  filter: none;
 }
 
 #feedback {
