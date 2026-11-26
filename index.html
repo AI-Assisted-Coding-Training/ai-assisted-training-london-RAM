@@ -29,18 +29,32 @@
       <button id="connect" type="submit">Create room</button>
     </form>
     <section id="room" hidden aria-labelledby="room-heading">
-      <button id="copy" type="button">Copy join URL</button>
-      <input id="join-url" aria-label="Join URL" readonly>
-      <h2 id="room-heading" tabindex="-1">Room participants</h2>
-      <ul id="roster"></ul>
-      <button id="start-voting" type="button" hidden>Start voting</button>
-      <button id="skip-discussion" type="button" hidden>Skip discussion</button>
-      <p id="round-timer" role="timer" hidden></p>
-      <fieldset id="vote-deck" disabled>
-        <legend>Choose a private estimate</legend>
-      </fieldset>
-      <button id="reveal" type="button" hidden>Reveal votes</button>
-      <button id="leave" type="button">Leave room</button>
+      <div>
+        <button id="copy" type="button">Copy join URL</button>
+        <input id="join-url" aria-label="Join URL" readonly>
+        <h2 id="room-heading" tabindex="-1">Room participants</h2>
+        <ul id="roster"></ul>
+        <button id="start-voting" type="button" hidden>Start voting</button>
+        <button id="skip-discussion" type="button" hidden>Skip discussion</button>
+        <p id="round-timer" role="timer" hidden></p>
+        <fieldset id="vote-deck" disabled>
+          <legend>Choose a private estimate</legend>
+        </fieldset>
+        <button id="reveal" type="button" hidden>Reveal votes</button>
+        <form id="save-estimate" hidden>
+          <label for="item-name">Item</label>
+          <input id="item-name" required maxlength="20">
+          <label for="agreed-estimate">Agreed estimate</label>
+          <input id="agreed-estimate" required maxlength="4">
+          <button type="submit">Save estimate</button>
+        </form>
+        <button id="leave" type="button">Leave room</button>
+      </div>
+      <aside id="session-history" aria-labelledby="history-heading">
+        <h2 id="history-heading">Session history</h2>
+        <ol id="history-list"></ol>
+        <p id="history-empty">No estimates saved yet.</p>
+      </aside>
     </section>
     <p id="feedback" role="status"></p>
   </main>
