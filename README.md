@@ -23,14 +23,7 @@ Both commands must succeed, and Copilot Chat must reply to `Hello`.
 
 1. Clone the repository.
 2. Open [index.html](index.html) in a browser to preview the static landing page. No build step is required.
-3. Create a room and share its join URL. Choose a Fibonacci estimate; the host can reveal early or reset after reveal. Otherwise, votes are revealed once everyone currently in the room has voted. Shared item names and saving agreed estimates are not supported by the current backend.
-
-The host can select **Start voting** before anyone votes to run a 60-second
-discussion and a 20-second voting countdown. The host can select
-**Skip discussion** to start the full voting countdown immediately.
-Only the host sees the timer;
-other participants can still vote during discussion. Votes reveal when the
-voting countdown expires or when everyone has voted after discussion ends.
+3. Create a room and share its join URL. Voting stays closed for everyone until the host selects **Start voting**, which runs a 60-second discussion followed by a 20-second voting window. The host can select **Skip discussion** to open the full voting window immediately. Votes reveal when the window expires, when everyone has voted, or when the host reveals early. Only the host sees the countdown. Shared item names and saving agreed estimates are not supported by the current backend.
 
 ## Project structure
 

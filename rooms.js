@@ -7,7 +7,6 @@ const joinUrl = document.querySelector('#join-url');
 const feedback = document.querySelector('#feedback');
 const deck = document.querySelector('#vote-deck');
 const reveal = document.querySelector('#reveal');
-const reset = document.querySelector('#reset');
 const startVoting = document.querySelector('#start-voting');
 const skipDiscussion = document.querySelector('#skip-discussion');
 const roundTimer = document.querySelector('#round-timer');
@@ -18,12 +17,14 @@ const avatars = ['🚀', '🦊', '🐙', '🐼', '🦉', '🐢', '🐝', '🐬']
 const roomHash = /^#\/room\/([a-z0-9]{4,32}(?:-[a-z0-9]{4,32})*)$/;
 let socket;
 let targetRoom;
-let discussionEnds;
+let phase = 'idle';
+let deadline;
 let timerTick;
 
 function stopTimer() {
   clearTimeout(timerTick);
-  discussionEnds = undefined;
+  phase = 'idle';
+  deadline = undefined;
   roundTimer.hidden = true;
   skipDiscussion.hidden = true;
 }
@@ -74,8 +75,11 @@ function renderRoster({ users, hostId, revealed, votes }, userId) {
     avatar.setAttribute('aria-hidden', 'true');
     avatar.textContent = avatars[hash % avatars.length];
     item.append(avatar, ` ${name}${id === userId ? ' (you)' : ''}${id === hostId ? ' (host)' : ''}`);
-    const result = revealed && Object.hasOwn(votes, id) ? votes[id] : 'No vote';
-    item.append(` — ${revealed ? result : hasVoted ? 'Voted' : 'Not voted'}`);
+    if (revealed && Object.keys(votes).length) {
+      item.append(` — ${Object.hasOwn(votes, id) ? votes[id] : 'No vote'}`);
+    } else if (!revealed) {
+      item.append(` — ${hasVoted ? 'Voted' : 'Not voted'}`);
+    }
     return item;
   }));
 }
@@ -100,54 +104,70 @@ form.addEventListener('submit', event => {
   let userId;
   let entered = false;
   let revealPending = false;
+  let resetPending = false;
   let state;
   function requestReveal() {
     if (revealPending) return;
     revealPending = sendRoundAction({ type: 'reveal' });
     reveal.disabled = revealPending;
   }
+  function openVoting() {
+    phase = 'voting';
+    deadline = Date.now() + votingDuration;
+    resetPending = sendRoundAction({ type: 'reset' });
+    if (!resetPending) stopTimer();
+  }
   reveal.onclick = () => {
     if (!reveal.hidden && !reveal.disabled) requestReveal();
   };
-  reset.onclick = () => {
-    if (!reset.hidden) sendRoundAction({ type: 'reset' });
-  };
+  // The backend rejects votes while revealed, so the host keeps the room
+  // revealed until voting opens and then sends reset to unlock it for everyone.
   function updateRound() {
     const isHost = state.hostId === userId;
-    if (!isHost || state.revealed) stopTimer();
     const now = Date.now();
-    const discussing = discussionEnds !== undefined && now < discussionEnds;
-    skipDiscussion.hidden = !discussing;
-    const votingEnds = discussionEnds === undefined ? undefined : discussionEnds + votingDuration;
-    const timedOut = votingEnds !== undefined && now >= votingEnds;
-    if (votingEnds !== undefined) {
-      const deadline = discussing ? discussionEnds : votingEnds;
-      const seconds = Math.max(0, Math.ceil((deadline - now) / 1000));
-      roundTimer.hidden = false;
-      roundTimer.textContent = `${discussing ? 'Discussion' : 'Voting'}: ${seconds}s (host only)`;
-      clearTimeout(timerTick);
-      if (!timedOut) timerTick = setTimeout(updateRound, (deadline - now) % 1000 || 1000);
+    if (!isHost) {
+      stopTimer();
+    } else if (state.revealed) {
+      if (phase === 'voting' && !resetPending) stopTimer();
+    } else if (phase !== 'voting' && !revealPending) {
+      if (state.users.some(user => user.hasVoted)) {
+        phase = 'voting';
+        deadline = now + votingDuration;
+      } else {
+        requestReveal();
+      }
     }
-    deck.disabled = state.revealed || discussing;
-    startVoting.hidden = !isHost || state.revealed;
-    startVoting.disabled = discussionEnds !== undefined || revealPending || state.users.some(user => user.hasVoted);
+    if (phase === 'discussion' && now >= deadline) openVoting();
+    clearTimeout(timerTick);
+    roundTimer.hidden = false;
+    if (phase === 'idle') {
+      roundTimer.textContent = state.revealed
+        ? 'Voting is closed. Waiting for the host to start voting.' : 'Voting is open.';
+    } else {
+      const left = Math.max(0, deadline - now);
+      roundTimer.textContent = `${phase === 'discussion' ? 'Discussion' : 'Voting'}: ${Math.ceil(left / 1000)}s`;
+      if (left) timerTick = setTimeout(updateRound, left % 1000 || 1000);
+    }
+    deck.disabled = state.revealed;
+    startVoting.hidden = !isHost || !state.revealed || phase !== 'idle';
+    startVoting.disabled = revealPending;
+    skipDiscussion.hidden = phase !== 'discussion';
     reveal.hidden = !isHost || state.revealed;
-    reveal.disabled = discussing || revealPending;
-    reset.hidden = !isHost || !state.revealed;
-    if (!reveal.hidden && !discussing && (timedOut ||
-      (state.users.length && state.users.every(user => user.hasVoted)))) {
+    reveal.disabled = revealPending;
+    const allVoted = state.users.length && state.users.every(user => user.hasVoted);
+    if (phase === 'voting' && !state.revealed && !resetPending && (now >= deadline || allVoted)) {
       requestReveal();
     }
   }
   startVoting.onclick = () => {
     if (startVoting.hidden || startVoting.disabled) return;
-    discussionEnds = Date.now() + discussionDuration;
+    phase = 'discussion';
+    deadline = Date.now() + discussionDuration;
     updateRound();
   };
   skipDiscussion.onclick = () => {
-    const now = Date.now();
-    if (discussionEnds === undefined || now >= discussionEnds) return;
-    discussionEnds = now;
+    if (phase !== 'discussion') return;
+    openVoting();
     updateRound();
   };
   connectButton.disabled = true;
@@ -159,14 +179,21 @@ form.addEventListener('submit', event => {
     if (message.type === 'welcome') userId = message.userId;
     if (message.type === 'error') {
       revealPending = false;
-      reveal.disabled = discussionEnds !== undefined && Date.now() < discussionEnds;
+      reveal.disabled = false;
+      startVoting.disabled = false;
       feedback.textContent = message.message;
+      if (resetPending) {
+        resetPending = false;
+        stopTimer();
+        updateRound();
+      }
       return;
     }
     if (message.type !== 'state' || !userId) return;
     renderRoster(message, userId);
     state = message;
     if (message.revealed) revealPending = false;
+    else resetPending = false;
     updateRound();
     if (!entered) {
       entered = true;
