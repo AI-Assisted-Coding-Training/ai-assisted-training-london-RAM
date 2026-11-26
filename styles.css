@@ -32,6 +32,37 @@ main button {
   overflow-wrap: anywhere;
 }
 
+#room:not([hidden]) {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 48rem) {
+  #room:not([hidden]) {
+    grid-template-columns: 1fr 16rem;
+  }
+}
+
+#save-estimate:not([hidden]) {
+  display: grid;
+  gap: 0.4rem;
+  width: min(100%, 18rem);
+  margin: 1rem auto;
+  text-align: start;
+}
+
+#save-estimate button {
+  margin-top: 0.4rem;
+}
+
+#session-history {
+  padding: 1rem;
+  border: 1px solid #524063;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
 * {
   box-sizing: border-box;
 }

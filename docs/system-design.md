@@ -9,8 +9,7 @@ locally by the [vendored QR encoder](../vendor/qrcode.js); no external QR
 service receives the link.
 The frontend sends Fibonacci votes as strings and displays only voting status
 until the backend reveals the values. The backend remains authoritative for
-votes and host permissions. Shared item names and saving agreed estimates
-require backend support not present in the current contract.
+votes and host permissions. Item names are not shared while a round runs.
 
 The contract has no round-phase message, so the host's browser uses the
 revealed state as a room-wide voting lock: the backend rejects votes while a
@@ -22,12 +21,30 @@ request. Only the host sees the countdown; other participants see whether
 voting is open. A newly promoted host continues an unrevealed round with a new
 20-second voting window if anyone has voted, otherwise it locks the room.
 
+The contract has no history API, so session history is carried in the room
+roster. After a round, the host saves an item and agreed estimate. The host's
+browser opens an extra connection to the room whose display name encodes the
+entry as `§index|estimate|item`; the 32-character name limit caps items at 20
+characters and estimates at 4. Every browser decodes these entries into a
+read-only history panel, hides them from the roster and voting checks, and
+keeps the first entry seen for each index. History connections close with the
+host's page. A newly promoted host reopens entries it has already seen, so
+history lasts as long as the room. Limitations:
+
+- History connections count towards the room's capacity, and history is
+  capped at 20 entries.
+- A participant whose display name matches the encoding appears as a history
+  entry; the contract has no authentication to prevent this.
+- Participants who join while history connections are being reopened may not
+  see entries.
+
 ```mermaid
 flowchart LR
     User[Team member] --> Browser[Browser]
     Pages[GitHub Pages<br/>static frontend and QR encoder] --> Browser
     Browser -->|Locally generated join QR| User
     Browser <-->|WebSocket room snapshots and voting actions| Backend[Separate backend<br/>Node.js process]
+    Browser -.->|Host only: one WebSocket per saved estimate| Backend
     Backend --> State[Room state<br/>in memory]
 ```
 

@@ -12,8 +12,17 @@ const reveal = document.querySelector('#reveal');
 const startVoting = document.querySelector('#start-voting');
 const skipDiscussion = document.querySelector('#skip-discussion');
 const roundTimer = document.querySelector('#round-timer');
+const saveForm = document.querySelector('#save-estimate');
+const itemInput = document.querySelector('#item-name');
+const estimateInput = document.querySelector('#agreed-estimate');
+const historyList = document.querySelector('#history-list');
+const historyEmpty = document.querySelector('#history-empty');
 const discussionDuration = 60_000;
 const votingDuration = 20_000;
+const historyLimit = 20;
+// The contract has no history API, so each saved estimate is an extra
+// connection whose display name (max 32 chars) encodes "§index|estimate|item".
+const historyName = /^§(\d{1,2})\|([^|]{1,4})\|(.{1,20})$/;
 const estimates = ['1', '2', '3', '5', '8', '13', '21', '?'];
 const avatars = ['🚀', '🦊', '🐙', '🐼', '🦉', '🐢', '🐝', '🐬'];
 const roomHash = /^#\/room\/([a-z0-9]{4,32}(?:-[a-z0-9]{4,32})*)$/;
@@ -22,6 +31,35 @@ let targetRoom;
 let phase = 'idle';
 let deadline;
 let timerTick;
+const savedEstimates = new Map();
+const historySockets = new Map();
+
+function parseHistoryEntry(name) {
+  const match = historyName.exec(name);
+  const index = Number(match?.[1]);
+  return index >= 1 && index <= historyLimit
+    ? { index, estimate: match[2], item: match[3] } : undefined;
+}
+
+function renderHistory() {
+  const entries = [...savedEstimates.values()].sort((a, b) => a.index - b.index);
+  historyList.replaceChildren(...entries.map(({ item, estimate }) => {
+    const entry = document.createElement('li');
+    entry.textContent = `${item}: ${estimate}`;
+    return entry;
+  }));
+  historyEmpty.hidden = entries.length > 0;
+}
+
+function nextHistoryIndex() {
+  return Math.max(0, ...savedEstimates.keys(), ...historySockets.keys()) + 1;
+}
+
+function closeHistorySockets() {
+  const sockets = [...historySockets.values()];
+  historySockets.clear();
+  for (const historySocket of sockets) historySocket.close();
+}
 
 function stopTimer() {
   clearTimeout(timerTick);
@@ -57,6 +95,10 @@ deck.addEventListener('click', event => {
 
 function showForm() {
   stopTimer();
+  closeHistorySockets();
+  savedEstimates.clear();
+  renderHistory();
+  saveForm.hidden = true;
   const hash = location.hash;
   targetRoom = roomHash.exec(hash)?.[1];
   if (targetRoom?.length > 128) targetRoom = undefined;
@@ -107,7 +149,37 @@ form.addEventListener('submit', event => {
   let entered = false;
   let revealPending = false;
   let resetPending = false;
+  let canSave = false;
+  let presentEntries = new Set();
   let state;
+  function openHistorySocket(index, { item, estimate }) {
+    const historyUrl = new URL(url);
+    historyUrl.searchParams.set('name', `§${index}|${estimate}|${item}`);
+    const historySocket = new WebSocket(historyUrl);
+    let opened = false;
+    historySockets.set(index, historySocket);
+    historySocket.addEventListener('open', () => { opened = true; });
+    historySocket.addEventListener('close', () => {
+      if (historySockets.get(index) !== historySocket) return;
+      historySockets.delete(index);
+      if (socket !== connection) return;
+      if (savedEstimates.has(index)) {
+        if (opened) restoreHistory();
+        return;
+      }
+      canSave = true;
+      feedback.textContent = 'Could not save the estimate. The room may be full.';
+      if (state) updateRound();
+    });
+  }
+  // History connections close with the host, so a newly promoted host
+  // re-opens any entries it has seen that are no longer in the room.
+  function restoreHistory() {
+    if (state?.hostId !== userId) return;
+    for (const [index, entry] of savedEstimates) {
+      if (!presentEntries.has(index) && !historySockets.has(index)) openHistorySocket(index, entry);
+    }
+  }
   function requestReveal() {
     if (revealPending) return;
     revealPending = sendRoundAction({ type: 'reveal' });
@@ -129,8 +201,12 @@ form.addEventListener('submit', event => {
     const now = Date.now();
     if (!isHost) {
       stopTimer();
+      canSave = false;
     } else if (state.revealed) {
-      if (phase === 'voting' && !resetPending) stopTimer();
+      if (phase === 'voting' && !resetPending) {
+        stopTimer();
+        canSave = true;
+      }
     } else if (phase !== 'voting' && !revealPending) {
       if (state.users.some(user => user.hasVoted)) {
         phase = 'voting';
@@ -156,6 +232,8 @@ form.addEventListener('submit', event => {
     skipDiscussion.hidden = phase !== 'discussion';
     reveal.hidden = !isHost || state.revealed;
     reveal.disabled = revealPending;
+    saveForm.hidden = !isHost || !state.revealed || phase !== 'idle' || !canSave
+      || nextHistoryIndex() > historyLimit;
     const allVoted = state.users.length && state.users.every(user => user.hasVoted);
     if (phase === 'voting' && !state.revealed && !resetPending && (now >= deadline || allVoted)) {
       requestReveal();
@@ -163,6 +241,7 @@ form.addEventListener('submit', event => {
   }
   startVoting.onclick = () => {
     if (startVoting.hidden || startVoting.disabled) return;
+    canSave = false;
     phase = 'discussion';
     deadline = Date.now() + discussionDuration;
     updateRound();
@@ -170,6 +249,20 @@ form.addEventListener('submit', event => {
   skipDiscussion.onclick = () => {
     if (phase !== 'discussion') return;
     openVoting();
+    updateRound();
+  };
+  saveForm.onsubmit = submitEvent => {
+    submitEvent.preventDefault();
+    const item = itemInput.value.trim();
+    const estimate = estimateInput.value.trim();
+    if (saveForm.hidden || !item || !estimate || estimate.includes('|')) {
+      feedback.textContent = 'Enter an item and an agreed estimate without "|".';
+      return;
+    }
+    canSave = false;
+    openHistorySocket(nextHistoryIndex(), { item, estimate });
+    saveForm.reset();
+    feedback.textContent = '';
     updateRound();
   };
   connectButton.disabled = true;
@@ -192,11 +285,24 @@ form.addEventListener('submit', event => {
       return;
     }
     if (message.type !== 'state' || !userId) return;
-    renderRoster(message, userId);
-    state = message;
+    const people = [];
+    presentEntries = new Set();
+    for (const user of message.users) {
+      const entry = parseHistoryEntry(user.name);
+      if (!entry) {
+        people.push(user);
+        continue;
+      }
+      presentEntries.add(entry.index);
+      if (!savedEstimates.has(entry.index)) savedEstimates.set(entry.index, entry);
+    }
+    state = { ...message, users: people };
+    renderRoster(state, userId);
+    renderHistory();
     if (message.revealed) revealPending = false;
     else resetPending = false;
     updateRound();
+    restoreHistory();
     if (!entered) {
       entered = true;
       if (!joining) history.pushState(null, '', `#/room/${roomId}`);
@@ -243,6 +349,7 @@ document.querySelector('#copy').addEventListener('click', async () => {
 function leaveRoom() {
   const previous = socket;
   socket = undefined;
+  closeHistorySockets();
   previous?.close();
   showForm();
 }
